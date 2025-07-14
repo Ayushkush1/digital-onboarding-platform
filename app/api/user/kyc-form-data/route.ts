@@ -33,7 +33,11 @@ export async function POST(request: NextRequest) {
       bvn,
       references,
       extractedData,
-      isSubmitted = false
+      isSubmitted = false,
+      rcNumber,
+      companyType,
+      tinValidationResult,
+      cacValidationResult
     } = body;
 
     // Save or update KYC form data
@@ -57,7 +61,11 @@ export async function POST(request: NextRequest) {
         extractedData,
         isSubmitted,
         submittedAt: isSubmitted ? new Date() : undefined,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        rcNumber,
+        companyType,
+        tinValidationResult: tinValidationResult ? tinValidationResult as any : null,
+        cacValidationResult: cacValidationResult ? cacValidationResult as any : null
       },
       create: {
         userId,
@@ -75,7 +83,11 @@ export async function POST(request: NextRequest) {
         ref2Phone: references?.ref2Phone,
         extractedData,
         isSubmitted,
-        submittedAt: isSubmitted ? new Date() : undefined
+        submittedAt: isSubmitted ? new Date() : undefined,
+        rcNumber,
+        companyType,
+        tinValidationResult: tinValidationResult ? tinValidationResult as any : null,
+        cacValidationResult: cacValidationResult ? cacValidationResult as any : null
       }
     });
 

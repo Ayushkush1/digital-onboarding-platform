@@ -1085,6 +1085,26 @@ class DojahService {
     const response = await this.makeRequest(endpoint, { bvn }, DojahAuthMode.PUBLIC_KEY);
     return response;
   }
+  // FIRS TIN Lookup
+  async lookupFirsTin(tin: string): Promise<any> {
+    const endpoint = '/api/v1/kyc/tin';
+    // Explicitly use SECRET_KEY auth for TIN validation
+    const response = await this.makeRequest(endpoint, { tin }, DojahAuthMode.SECRET_KEY);
+    if (!response.entity) {
+      return null;
+    }
+    return response.entity;
+  }
+  // CAC Basic Lookup
+  async lookupCacBasic(rcNumber: string, companyType: string): Promise<any> {
+    const endpoint = '/api/v1/kyc/cac/basic';
+    // Explicitly use SECRET_KEY auth for CAC basic lookup
+    const response = await this.makeRequest(endpoint, { rc_number: rcNumber, company_type: companyType }, DojahAuthMode.SECRET_KEY);
+    if (!response.entity) {
+      return null;
+    }
+    return response.entity;
+  }
   // Comprehensive fraud check - only IP check and phone check
   async performComprehensiveCheck(userData: {
     userId: string,

@@ -115,3 +115,32 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const tin = searchParams.get('tin');
+    const rcNumber = searchParams.get('rc_number');
+    const companyType = searchParams.get('company_type');
+
+    if (tin) {
+      const result = await dojahService.lookupFirsTin(tin);
+      if (!result) {
+        return NextResponse.json({ error: 'No result found for provided TIN' }, { status: 404 });
+      }
+      return NextResponse.json({ entity: result });
+    }
+
+    if (rcNumber && companyType) {
+      const result = await dojahService.lookupCacBasic(rcNumber, companyType);
+      if (!result) {
+        return NextResponse.json({ error: 'No result found for provided RC number and company type' }, { status: 404 });
+      }
+      return NextResponse.json({ entity: result });
+    }
+
+    return NextResponse.json({ error: 'Missing required parameters: either tin, or rc_number and company_type' }, { status: 400 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  }
+}

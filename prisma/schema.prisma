@@ -23,23 +23,23 @@ model User {
   accountStatus      AccountStatus       @default(PENDING)
   accountType        AccountType         @default(INDIVIDUAL)
   account            Account?
+  reviewedByMe       AdminReview[]       @relation("AdminReviews")
+  adminReviews       AdminReview[]
   auditLogs          AuditLog[]
+  creditAccounts     CreditAccount[]
+  creditAlerts       CreditAlert[]
+  creditBureauChecks CreditBureauCheck[]
+  creditEnquiries    CreditEnquiry[]
+  creditFactors      CreditFactor[]
+  creditScore        CreditScore?
+  dojahVerifications DojahVerification[]
+  fraudDetections    FraudDetection[]
   kycDocuments       KYCDocument[]
   kycFormData        KYCFormData?
   notifications      Notification[]
   references         Reference[]
   selfieVerification SelfieVerification?
   verificationStatus VerificationStatus?
-  dojahVerifications DojahVerification[]
-  adminReviews       AdminReview[]
-  reviewedByMe       AdminReview[]       @relation("AdminReviews")
-  fraudDetections    FraudDetection[]
-  creditScore        CreditScore?
-  creditBureauChecks CreditBureauCheck[]
-  creditFactors      CreditFactor[]
-  creditAccounts     CreditAccount[]
-  creditEnquiries    CreditEnquiry[]
-  creditAlerts       CreditAlert[]
 }
 
 model Account {
@@ -58,39 +58,39 @@ model Account {
 }
 
 model KYCDocument {
-  id          String                 @id @default(cuid())
-  userId      String
-  type        DocumentType
-  fileUrl     String                 // S3 URL for the file
-  s3Key       String                 // S3 key for the file
-  fileSize    Int
-  mimeType    String
-  fileName    String
-  uploadedAt  DateTime               @default(now())
-  verified    Boolean                @default(false)
-  verifiedAt  DateTime?
-  verifiedBy  String?
-  status      VerificationStatusEnum @default(PENDING)
-  notes       String?
-  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String                 @id @default(cuid())
+  userId           String
+  type             DocumentType
+  fileUrl          String
+  s3Key            String
+  fileSize         Int
+  mimeType         String
+  fileName         String
+  uploadedAt       DateTime               @default(now())
+  verified         Boolean                @default(false)
+  verifiedAt       DateTime?
+  verifiedBy       String?
+  status           VerificationStatusEnum @default(PENDING)
+  notes            String?
   documentAnalysis DocumentAnalysis?
+  user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SelfieVerification {
-  id          String                 @id @default(cuid())
-  userId      String                 @unique
-  fileUrl     String                 // S3 URL for the file
-  s3Key       String                 // S3 key for the file
-  fileName    String
-  fileSize    Int
-  mimeType    String
-  capturedAt  DateTime               @default(now())
-  verified    Boolean                @default(false)
-  verifiedAt  DateTime?
-  verifiedBy  String?
-  status      VerificationStatusEnum @default(PENDING)
-  notes       String?
-  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String                 @id @default(cuid())
+  userId     String                 @unique
+  fileUrl    String
+  s3Key      String
+  fileName   String
+  fileSize   Int
+  mimeType   String
+  capturedAt DateTime               @default(now())
+  verified   Boolean                @default(false)
+  verifiedAt DateTime?
+  verifiedBy String?
+  status     VerificationStatusEnum @default(PENDING)
+  notes      String?
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationStatus {
@@ -154,65 +154,212 @@ model SystemSettings {
 }
 
 model DojahVerification {
-  id                String                @id @default(cuid())
-  userId            String
-  verificationType  DojahVerificationType
-  documentId        String?               // References KYCDocument or SelfieVerification
-  referenceId       String?               // Dojah's reference ID
-  requestData       Json?                 // Original request payload
-  responseData      Json?                 // Dojah response
-  status            DojahStatus           @default(PENDING)
-  confidence        Float?                // Confidence score from Dojah
-  matchResult       Json?                 // Face match or document match results
-  extractedData     Json?                 // Extracted data from document analysis
-  governmentData    Json?                 // Data from government lookup APIs
-  errorMessage      String?
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  adminReviews      AdminReview[]
-  
+  id               String                @id @default(cuid())
+  userId           String
+  verificationType DojahVerificationType
+  documentId       String?
+  referenceId      String?
+  requestData      Json?
+  responseData     Json?
+  status           DojahStatus           @default(PENDING)
+  confidence       Float?
+  matchResult      Json?
+  extractedData    Json?
+  governmentData   Json?
+  errorMessage     String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  adminReviews     AdminReview[]
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, verificationType])
   @@index([referenceId])
 }
 
 model DocumentAnalysis {
-  id               String    @id @default(cuid())
-  kycDocumentId    String    @unique
+  id               String      @id @default(cuid())
+  kycDocumentId    String      @unique
   extractedText    String?
-  extractedData    Json?     // Structured data extracted from document
-  documentType     Json?     // Document type details including country
-  confidence       Float?    // Analysis confidence score
-  isReadable       Boolean   @default(false)
-  qualityScore     Float?    // Document quality score
-  analysisProvider String    @default("DOJAH")
-  createdAt        DateTime  @default(now())
-  isValid          Boolean   @default(false)  // Added field
-  validationStatus Json?     // Added field for detailed status
-  textData         Json?     // Added field for extracted text data
-  documentImages   Json?     // Added field for document images
+  extractedData    Json?
+  documentType     Json?
+  confidence       Float?
+  isReadable       Boolean     @default(false)
+  qualityScore     Float?
+  analysisProvider String      @default("DOJAH")
+  createdAt        DateTime    @default(now())
+  isValid          Boolean     @default(false)
+  validationStatus Json?
+  textData         Json?
+  documentImages   Json?
   kycDocument      KYCDocument @relation(fields: [kycDocumentId], references: [id], onDelete: Cascade)
 }
 
 model AdminReview {
-  id                String                @id @default(cuid())
-  userId            String
-  reviewerId        String
-  documentId        String?               // Polymorphic relation to either KYCDocument or SelfieVerification IDs
-  verificationType  AdminReviewType
+  id                  String             @id @default(cuid())
+  userId              String
+  reviewerId          String
+  documentId          String?
+  verificationType    AdminReviewType
   dojahVerificationId String?
-  status            AdminReviewStatus     @default(PENDING)
-  reviewNotes       String?
-  rejectionReason   String?
-  allowReupload     Boolean               @default(false)
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  user              User                  @relation(fields: [userId], references: [id])
-  reviewer          User                  @relation("AdminReviews", fields: [reviewerId], references: [id])
-  dojahVerification DojahVerification?    @relation(fields: [dojahVerificationId], references: [id])
-  
+  status              AdminReviewStatus  @default(PENDING)
+  reviewNotes         String?
+  rejectionReason     String?
+  allowReupload       Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  dojahVerification   DojahVerification? @relation(fields: [dojahVerificationId], references: [id])
+  reviewer            User               @relation("AdminReviews", fields: [reviewerId], references: [id])
+  user                User               @relation(fields: [userId], references: [id])
+
   @@index([userId])
   @@index([reviewerId])
+}
+
+model FraudDetection {
+  id               String         @id @default(cuid())
+  userId           String
+  verificationType FraudCheckType
+  ipAddress        String?
+  emailAddress     String?
+  phoneNumber      String?
+  requestData      Json?
+  responseData     Json?
+  riskScore        Int            @default(0)
+  isFraudSuspected Boolean        @default(false)
+  detectionDetails Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, verificationType])
+  @@index([createdAt])
+}
+
+model CreditScore {
+  id            String               @id @default(cuid())
+  userId        String               @unique
+  accountType   AccountType
+  currentScore  Int                  @default(300)
+  previousScore Int?
+  scoreChange   Int?
+  lastUpdated   DateTime             @default(now())
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scoreHistory  CreditScoreHistory[]
+}
+
+model CreditScoreHistory {
+  id            String      @id @default(cuid())
+  creditScoreId String
+  score         Int
+  changeReason  String?
+  factors       Json?
+  createdAt     DateTime    @default(now())
+  creditScore   CreditScore @relation(fields: [creditScoreId], references: [id], onDelete: Cascade)
+
+  @@index([creditScoreId, createdAt])
+}
+
+model CreditBureauCheck {
+  id            String      @id @default(cuid())
+  userId        String
+  bvn           String
+  accountType   AccountType
+  creditScore   Int?
+  riskScore     Int?
+  riskLevel     RiskLevel?
+  responseData  Json?
+  extractedData Json?
+  createdAt     DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([bvn])
+}
+
+model CreditFactor {
+  id           String   @id @default(cuid())
+  userId       String
+  factorType   String
+  factorValue  Float
+  factorWeight Float
+  impact       String
+  description  String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, factorType])
+}
+
+model CreditAccount {
+  id            String    @id @default(cuid())
+  userId        String
+  accountType   String
+  institution   String
+  accountNumber String?
+  balance       Float?
+  limit         Float?
+  status        String
+  openedDate    DateTime?
+  closedDate    DateTime?
+  createdAt     DateTime  @default(now())
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, accountType])
+}
+
+model CreditEnquiry {
+  id          String   @id @default(cuid())
+  userId      String
+  institution String
+  enquiryType String
+  enquiryDate DateTime
+  amount      Float?
+  purpose     String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, enquiryDate])
+}
+
+model CreditAlert {
+  id        String   @id @default(cuid())
+  userId    String
+  alertType String
+  message   String
+  severity  String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+model KYCFormData {
+  id                  String      @id @default(cuid())
+  userId              String      @unique
+  accountType         AccountType
+  businessName        String?
+  businessAddress     String?
+  taxNumber           String?
+  scumlNumber         String?
+  bvn                 String?
+  ref1Name            String?
+  ref1Address         String?
+  ref1Phone           String?
+  ref2Name            String?
+  ref2Address         String?
+  ref2Phone           String?
+  extractedData       Json?
+  isSubmitted         Boolean     @default(false)
+  submittedAt         DateTime?
+  lastCheckedAt       DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  cacValidationResult Json?
+  companyType         String?
+  rcNumber            String?
+  tinValidationResult Json?
+  user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum UserRole {
@@ -316,26 +463,6 @@ enum AdminReviewStatus {
   REQUIRES_ADDITIONAL_INFO
 }
 
-model FraudDetection {
-  id                String        @id @default(cuid())
-  userId            String
-  verificationType  FraudCheckType
-  ipAddress         String?
-  emailAddress      String?
-  phoneNumber       String?
-  requestData       Json?
-  responseData      Json?
-  riskScore         Int           @default(0)
-  isFraudSuspected  Boolean       @default(false)
-  detectionDetails  Json?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, verificationType])
-  @@index([createdAt])
-}
-
 enum FraudCheckType {
   IP_CHECK
   EMAIL_CHECK
@@ -349,136 +476,4 @@ enum RiskLevel {
   MEDIUM
   HIGH
   CRITICAL
-}
-
-// CIBIL Credit Scoring Models
-model CreditScore {
-  id            String    @id @default(cuid())
-  userId        String    @unique
-  accountType   AccountType
-  currentScore  Int       @default(300)
-  previousScore Int?
-  scoreChange   Int?
-  lastUpdated   DateTime  @default(now())
-  scoreHistory  CreditScoreHistory[]
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model CreditScoreHistory {
-  id            String    @id @default(cuid())
-  creditScoreId String
-  score         Int
-  changeReason  String?
-  factors       Json?
-  createdAt     DateTime  @default(now())
-  creditScore   CreditScore @relation(fields: [creditScoreId], references: [id], onDelete: Cascade)
-  
-  @@index([creditScoreId, createdAt])
-}
-
-model CreditBureauCheck {
-  id            String    @id @default(cuid())
-  userId        String
-  bvn           String
-  accountType   AccountType
-  creditScore   Int?
-  riskScore     Int?
-  riskLevel     RiskLevel?
-  responseData  Json?
-  extractedData Json?
-  createdAt     DateTime  @default(now())
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, createdAt])
-  @@index([bvn])
-}
-
-model CreditFactor {
-  id          String    @id @default(cuid())
-  userId      String
-  factorType  String
-  factorValue Float
-  factorWeight Float
-  impact      String
-  description String?
-  createdAt   DateTime  @default(now())
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, factorType])
-}
-
-model CreditAccount {
-  id            String    @id @default(cuid())
-  userId        String
-  accountType   String
-  institution   String
-  accountNumber String?
-  balance       Float?
-  limit         Float?
-  status        String
-  openedDate    DateTime?
-  closedDate    DateTime?
-  createdAt     DateTime  @default(now())
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, accountType])
-}
-
-model CreditEnquiry {
-  id            String    @id @default(cuid())
-  userId        String
-  institution   String
-  enquiryType   String
-  enquiryDate   DateTime
-  amount        Float?
-  purpose       String?
-  createdAt     DateTime  @default(now())
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, enquiryDate])
-}
-
-model CreditAlert {
-  id          String    @id @default(cuid())
-  userId      String
-  alertType   String
-  message     String
-  severity    String
-  isRead      Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, isRead])
-}
-
-model KYCFormData {
-  id                    String    @id @default(cuid())
-  userId                String    @unique
-  accountType           AccountType
-  businessName          String?
-  businessAddress       String?
-  taxNumber             String?
-  scumlNumber           String?
-  bvn                   String?   // Add BVN field for credit score calculations
-  
-  // References
-  ref1Name              String?
-  ref1Address           String?
-  ref1Phone             String?
-  ref2Name              String?
-  ref2Address           String?
-  ref2Phone             String?
-  
-  // Extracted document data
-  extractedData         Json?
-  
-  // Form metadata
-  isSubmitted           Boolean   @default(false)
-  submittedAt           DateTime?
-  lastCheckedAt         DateTime?
-  
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
