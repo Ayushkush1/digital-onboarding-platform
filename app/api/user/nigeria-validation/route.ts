@@ -124,19 +124,33 @@ export async function GET(req: NextRequest) {
     const companyType = searchParams.get('company_type');
 
     if (tin) {
-      const result = await dojahService.lookupFirsTin(tin);
-      if (!result) {
-        return NextResponse.json({ error: 'No result found for provided TIN' }, { status: 404 });
+      try {
+        const result = await dojahService.lookupFirsTin(tin);
+        if (!result) {
+          return NextResponse.json({ error: 'No result found for provided TIN' }, { status: 404 });
+        }
+        return NextResponse.json({ entity: result });
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          return NextResponse.json({ error: 'TIN validation timed out, please try again later.' }, { status: 504 });
+        }
+        return NextResponse.json({ error: error.message || 'TIN validation failed' }, { status: 502 });
       }
-      return NextResponse.json({ entity: result });
     }
 
     if (rcNumber && companyType) {
-      const result = await dojahService.lookupCacBasic(rcNumber, companyType);
-      if (!result) {
-        return NextResponse.json({ error: 'No result found for provided RC number and company type' }, { status: 404 });
+      try {
+        const result = await dojahService.lookupCacBasic(rcNumber, companyType);
+        if (!result) {
+          return NextResponse.json({ error: 'No result found for provided RC number and company type' }, { status: 404 });
+        }
+        return NextResponse.json({ entity: result });
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          return NextResponse.json({ error: 'CAC validation timed out, please try again later.' }, { status: 504 });
+        }
+        return NextResponse.json({ error: error.message || 'CAC validation failed' }, { status: 502 });
       }
-      return NextResponse.json({ entity: result });
     }
 
     return NextResponse.json({ error: 'Missing required parameters: either tin, or rc_number and company_type' }, { status: 400 });
