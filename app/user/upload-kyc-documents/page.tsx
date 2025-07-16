@@ -1721,7 +1721,7 @@ const UploadKYCDocumentsPage = () => {
               {/* TIN and CAC Validation Section */}
               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
                 <h4 className="text-sm font-medium text-slate-700 mb-4 flex items-center">
-                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">2</span>
+                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">1</span>
                   Business Registration Validation <span className="ml-2 text-xs bg-red-100 text-red-800 py-0.5 px-2 rounded-full">Required</span>
                 </h4>
                 <div className="grid grid-cols-1 gap-6">
@@ -1800,7 +1800,7 @@ const UploadKYCDocumentsPage = () => {
                     <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">2</span>
                     Required Business Documents
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6" style={slideUpAnimation}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8" style={slideUpAnimation}>
                     <FileUploadBox
                       docType="certificateOfRegistration"
                       label="Certificate of Registration (Original to be sighted)"
@@ -1814,15 +1814,7 @@ const UploadKYCDocumentsPage = () => {
                       accountTypeKey="partnership"
                       fileRef={fileInputRefs.validIdOfPartners}
                     />
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
-                  <h4 className="text-sm font-medium text-slate-700 mb-4 flex items-center">
-                    <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">2</span>
-                    Additional Documents
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6" style={slideUpAnimation}>
+                
                     <FileUploadBox
                       docType="formOfApplication"
                       label="Form of Application for Registration (Certified by CAC)"
