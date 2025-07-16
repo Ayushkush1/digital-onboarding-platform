@@ -25,7 +25,7 @@ interface DojahResponse {
 
 // Constants for API request handling
 const MAX_RETRY_ATTEMPTS = 2;
-const API_TIMEOUT = 15000; // 15 seconds timeout
+const API_TIMEOUT = 30000; // 30 seconds timeout
 
 interface DocumentAnalysisResult {
   extractedText?: string;
