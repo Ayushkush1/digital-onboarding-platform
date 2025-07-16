@@ -18,7 +18,7 @@ import StepCompletionMessage from '@/components/StepCompletionMessage';
 // Add custom style for animations
 const fadeInAnimation = {
   opacity: 1,
-  animation: 'fadeIn 0.5s ease-out forwards',
+  animation: 'fadeIn 1s ease-out forwards',
 };
 
 const slideUpAnimation = {
@@ -105,7 +105,7 @@ const SCUMLToggle = ({
         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
       />
       <label htmlFor="scuml-toggle" className="ml-2 text-sm font-medium text-gray-700">
-        I have a SCUML (Securities and Commodities Market License)
+        I have a SCUML (Securities and Commodities Market License) <span className="text-blue-500 text-xs">(Optional)</span>
       </label>
     </div>
   </div>
@@ -122,8 +122,8 @@ const SCUMLInput = ({
   error: string;
 }) => (
   <div>
-    <label className="block text-sm font-medium text-slate-700 mb-2">
-      SCUML License Number <span className="text-rose-500">*</span>
+    <label className="block text-sm font-medium text-slate-700 my-2">
+      SCUML License Number
     </label>
     <input
       type="text"
@@ -145,7 +145,7 @@ const SCUMLInput = ({
 const docTypeToEnumMapping = (docType: string): DocumentType => {
   const mapping: { [key: string]: DocumentType } = {
     // Individual documents
-    idCard: DocumentType.ID_CARD, 
+    idCard: DocumentType.ID_CARD,
     idCardFront: DocumentType.ID_CARD,
     idCardBack: DocumentType.ID_CARD,
     passport: DocumentType.PASSPORT,
@@ -443,10 +443,10 @@ const UploadKYCDocumentsPage = () => {
       // For ID Card Front/Back, rename the file to make it more distinctive
       if (docType === 'idCardFront' || docType === 'idCardBack') {
         // Create a new file object with a more distinctive name
-        const newFileName = docType === 'idCardFront' 
+        const newFileName = docType === 'idCardFront'
           ? `ID_Card_Front_${Date.now()}${file.name.substr(file.name.lastIndexOf('.'))}`
           : `ID_Card_Back_${Date.now()}${file.name.substr(file.name.lastIndexOf('.'))}`;
-          
+
         // Create a new File object with the renamed file
         file = new File([file], newFileName, { type: file.type });
         console.log(`Renamed file to: ${file.name}`);
@@ -455,7 +455,7 @@ const UploadKYCDocumentsPage = () => {
       // Map docType to appropriate DocumentType enum
       const documentEnum = docTypeToEnumMapping(docType);
       const docTypeFormatted = documentEnum.toString().replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-      
+
       // Check for existing files - both locally and on server
       let isReplacing = false;
 
@@ -474,23 +474,23 @@ const UploadKYCDocumentsPage = () => {
           isReplacing = !!llcDocuments[docType as keyof typeof llcDocuments];
           break;
       }
-      
+
       // Check if this document exists on the server
       let existingServerDoc = false;
       if (docType === 'idCardFront') {
-        existingServerDoc = documents?.some(doc => 
-          (doc.type === 'Id Card' && doc.fileName.toLowerCase().includes('front')) || 
+        existingServerDoc = documents?.some(doc =>
+          (doc.type === 'Id Card' && doc.fileName.toLowerCase().includes('front')) ||
           doc.type === 'Id Card Front'
         );
       } else if (docType === 'idCardBack') {
-        existingServerDoc = documents?.some(doc => 
-          (doc.type === 'Id Card' && doc.fileName.toLowerCase().includes('back')) || 
+        existingServerDoc = documents?.some(doc =>
+          (doc.type === 'Id Card' && doc.fileName.toLowerCase().includes('back')) ||
           doc.type === 'Id Card Back'
         );
       } else {
         existingServerDoc = documents?.some(doc => doc.type === docTypeFormatted);
       }
-      
+
       // Check if this document is already uploaded
       const isAlreadyUploaded = isReplacing || existingServerDoc;
 
@@ -505,7 +505,7 @@ const UploadKYCDocumentsPage = () => {
       setUploadStatus(prev => ({ ...prev, [docType]: 'File Selected' }));
       setUploadProgress(prev => ({ ...prev, [docType]: 5 }));
       setDocumentErrors(prev => ({ ...prev, [docType]: '' })); // Clear any previous errors
-      
+
       // Set up a progress simulation for the validation phase
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
@@ -518,12 +518,12 @@ const UploadKYCDocumentsPage = () => {
           return prev;
         });
       }, 600);
-      
+
       try {
         // Validate document before actually uploading it
-        let validationResult: { isValid: boolean; extractedData?: any; message: string; } = { 
-          isValid: false, 
-          message: 'Document validation not performed' 
+        let validationResult: { isValid: boolean; extractedData?: any; message: string; } = {
+          isValid: false,
+          message: 'Document validation not performed'
         };
 
         if (accountTypeKey === 'individual') {
@@ -546,7 +546,7 @@ const UploadKYCDocumentsPage = () => {
                 [docType]: validationResult.extractedData
               }));
             }
-            
+
             // Update document states based on which side was uploaded
             if (docType === 'idCardFront') {
               console.log('Setting ID Card Front document:', file.name);
@@ -632,7 +632,7 @@ const UploadKYCDocumentsPage = () => {
             }
           }
         }
-        
+
         // Process validation result for non-ID card documents
         // Special case for passport and utility bill which may get marked as invalid by Dojah but should be accepted
         if (docType === 'passport' || docType === 'utilityBill') {
@@ -653,7 +653,7 @@ const UploadKYCDocumentsPage = () => {
           setError(`Document validation failed: ${validationResult?.message || 'Unknown error'}`);
           return;
         }
-        
+
         // Even if validation succeeded, store the file in the appropriate state
         // This ensures we have the file ready for resubmission in case of server errors
 
@@ -671,14 +671,14 @@ const UploadKYCDocumentsPage = () => {
               // For utility bill, ensure the filename is consistent
               const utilityFileName = `Utility_Bill_${Date.now()}${file.name.substr(file.name.lastIndexOf('.'))}`;
               const utilityFile = new File([file], utilityFileName, { type: file.type });
-              
+
               setIndividualDocuments(prev => {
                 const updated = { ...prev, utilityBill: utilityFile };
                 console.log('Updated individual documents with utility bill:', updated);
                 return updated;
               });
               setFileNames(prev => ({ ...prev, utilityBill: utilityFileName }));
-              
+
               // Update the file reference for future use
               file = utilityFile;
             }
@@ -708,7 +708,7 @@ const UploadKYCDocumentsPage = () => {
             setFileNames(prev => ({ ...prev, [docType]: file.name }));
             break;
         }
-        
+
         // Clear the progress simulation interval
         clearInterval(progressInterval);
 
@@ -787,7 +787,7 @@ const UploadKYCDocumentsPage = () => {
           idCardFront: 'Verified',
           idCardBack: 'Verified'
         }));
-        
+
         // Clear any previous errors for these documents
         setDocumentErrors(prev => ({
           ...prev,
@@ -882,11 +882,27 @@ const UploadKYCDocumentsPage = () => {
     setCacValidationResult(null);
     const isBusinessAccount = ['partnership', 'enterprise', 'llc'].includes(accountType);
     try {
-      // 1. Validate TIN and CAC first (if provided)
+      // 1. Validate TIN and CAC (now required)
       let tinValid = true;
       let cacValid = true;
       if (isBusinessAccount) {
-        // Validate TIN if provided
+        // Check if TIN is provided as it's required
+        if (!taxInfo.taxNumber) {
+          setTinValidationError('Tax Identification Number is required');
+          setIsSubmitting(false);
+          setError('Tax Identification Number (TIN) is required');
+          return;
+        }
+
+        // Check if CAC RC Number is provided as it's required
+        if (!rcNumber) {
+          setCacValidationError('CAC RC Number is required');
+          setIsSubmitting(false);
+          setError('CAC RC Number is required');
+          return;
+        }
+
+        // Validate TIN
         if (taxInfo.taxNumber) {
           setIsValidatingTin(true);
           try {
@@ -1002,7 +1018,7 @@ const UploadKYCDocumentsPage = () => {
     console.log('Upload status:', uploadStatus);
     console.log('============================');
   };
-  
+
   // File upload component
   const FileUploadBox = ({
     docType,
@@ -1038,17 +1054,17 @@ const UploadKYCDocumentsPage = () => {
     // Check if this document is already in the server documents list
     const documentEnum = docTypeToEnumMapping(docType);
     const docTypeFormatted = documentEnum.toString().replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-    
+
     // For ID Card, we need to distinguish between front and back
     let existingServerDoc;
     if (docType === 'idCardFront') {
-      existingServerDoc = documents?.find(doc => 
-        (doc.type === docTypeFormatted || doc.type === 'Id Card') && 
+      existingServerDoc = documents?.find(doc =>
+        (doc.type === docTypeFormatted || doc.type === 'Id Card') &&
         (doc.fileName?.toLowerCase().includes('front') || doc.id.includes('front'))
       );
     } else if (docType === 'idCardBack') {
-      existingServerDoc = documents?.find(doc => 
-        (doc.type === docTypeFormatted || doc.type === 'Id Card') && 
+      existingServerDoc = documents?.find(doc =>
+        (doc.type === docTypeFormatted || doc.type === 'Id Card') &&
         (doc.fileName?.toLowerCase().includes('back') || doc.id.includes('back'))
       );
     } else {
@@ -1117,7 +1133,7 @@ const UploadKYCDocumentsPage = () => {
         const dt = e.dataTransfer;
         if (dt.files && dt.files.length > 0) {
           console.log(`File dropped for ${docType}:`, dt.files[0].name);
-          
+
           // Create a synthetic event to be used with handleFileChange
           const files = dt.files;
           const newEvent = {
@@ -1130,17 +1146,17 @@ const UploadKYCDocumentsPage = () => {
 
           // Process the file upload
           handleFileChange(newEvent, docType, accountTypeKey);
-          
+
           // Force a UI update for the specific document type
           setTimeout(() => {
             // Check if the file was properly stored
             const storedFile = getFileByType(accountTypeKey, docType);
             console.log(`After drop processing: ${docType} file stored:`, !!storedFile);
-            
+
             // Re-trigger state update to ensure UI reflects the change
             if (storedFile) {
               setUploadStatus(prev => ({ ...prev, [docType]: 'Verified' }));
-              
+
               // Also make sure the filename is set
               if (!fileNames[docType as keyof typeof fileNames]) {
                 setFileNames(prev => ({ ...prev, [docType]: storedFile.name }));
@@ -1159,8 +1175,8 @@ const UploadKYCDocumentsPage = () => {
         handlePreview(file);
       }
     }, [
-      accountTypeKey, 
-      docType, 
+      accountTypeKey,
+      docType,
       // Include these dependencies to re-trigger preview when document states change
       accountTypeKey === 'individual' ? individualDocuments : null,
       accountTypeKey === 'partnership' ? partnershipDocuments : null,
@@ -1210,9 +1226,9 @@ const UploadKYCDocumentsPage = () => {
           <button type="button" onClick={() => fileRef.current?.click()} className="ml-2 text-blue-600 underline text-xs">Replace File</button>
         )}
         {status === 'File Mismatched' && (
-          <button 
-            type="button" 
-            onClick={() => fileRef.current?.click()} 
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
             className="ml-2 bg-red-100 hover:bg-red-200 text-red-700 font-medium py-1 px-3 rounded-full text-xs flex items-center"
           >
             <Upload className="h-3 w-3 mr-1" /> Re-upload File
@@ -1286,13 +1302,13 @@ const UploadKYCDocumentsPage = () => {
                 <div className="ml-4 flex-grow">
                   <p className="text-sm font-medium text-slate-800">{fileName || 'Upload failed'}</p>
                   <p className="text-xs text-red-600 font-medium mt-0.5">
-                    {documentError || (docType === 'utilityBill' ? 
-                      'Error: Please ensure your file is a recent utility bill (less than 3 months old)' : 
+                    {documentError || (docType === 'utilityBill' ?
+                      'Error: Please ensure your file is a recent utility bill (less than 3 months old)' :
                       'Verification failed')}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
-                    {docType === 'utilityBill' ? 
-                      'Try a different document format (JPG or PDF)' : 
+                    {docType === 'utilityBill' ?
+                      'Try a different document format (JPG or PDF)' :
                       'Please check the document and try again'}
                   </p>
                 </div>
@@ -1564,7 +1580,7 @@ const UploadKYCDocumentsPage = () => {
 
         <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-5 mb-10 shadow-sm">
           <div className="flex items-start">
-            <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 border border-amber-200">
+            <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center mr-3">
               <AlertCircle className="text-amber-600 h-5 w-5" />
             </div>
             <div className="ml-4">
@@ -1701,79 +1717,78 @@ const UploadKYCDocumentsPage = () => {
                 </div>
               </div>
 
-              {/* SCUML Section - First Priority */}
-              <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
-                <h4 className="text-sm font-medium text-slate-700 mb-4 flex items-center">
-                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">1</span>
-                  Securities License Information
-                </h4>
-                <div className="space-y-4">
-                  <SCUMLToggle
-                    checked={hasSCUMLLicense}
-                    onChange={handleSCUMLToggle}
-                  />
-                  {hasSCUMLLicense && (
-                    <SCUMLInput
-                      value={scumlNumber}
-                      onChange={handleSCUMLChange}
-                      error={scumlError}
-                    />
-                  )}
-                </div>
-              </div>
 
               {/* TIN and CAC Validation Section */}
               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
                 <h4 className="text-sm font-medium text-slate-700 mb-4 flex items-center">
-                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">2</span>
-                  Business Registration Validation
+                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">1</span>
+                  Business Registration Validation <span className="ml-2 text-xs bg-red-100 text-red-800 py-0.5 px-2 rounded-full">Required</span>
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Tax Identification Number (TIN)
-                    </label>
-                    <input
-                      type="text"
-                      name="taxNumber"
-                      value={taxInfo.taxNumber}
-                      placeholder="Enter TIN"
-                      onChange={handleTaxInfoChange}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm bg-white/50 backdrop-blur-sm"
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="">
+                    <SCUMLToggle
+                      checked={hasSCUMLLicense}
+                      onChange={handleSCUMLToggle}
                     />
-                    {tinValidationError && (
-                      <p className="mt-1 text-sm text-red-600">{tinValidationError}</p>
-                    )}
-                    {tinValidationResult && (
-                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-sm text-green-800 font-medium">✓ TIN Validated</p>
-                        <p className="text-xs text-green-700">{tinValidationResult.taxpayer_name || tinValidationResult.search}</p>
-                      </div>
+                    {hasSCUMLLicense && (
+                      <SCUMLInput
+                        value={scumlNumber}
+                        onChange={handleSCUMLChange}
+                        error={scumlError}
+                      />
                     )}
                   </div>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Tax Identification Number (TIN) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="taxNumber"
+                        value={taxInfo.taxNumber}
+                        placeholder="Enter TIN"
+                        onChange={handleTaxInfoChange}
+                        required
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm bg-white/50 backdrop-blur-sm"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">Format: 10-12 digits (e.g., 1234567890)</p>
+                      {tinValidationError && (
+                        <p className="mt-1 text-sm text-red-600">{tinValidationError}</p>
+                      )}
+                      {tinValidationResult && (
+                        <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-sm text-green-800 font-medium">✓ TIN Validated</p>
+                          <p className="text-xs text-green-700">{tinValidationResult.taxpayer_name || tinValidationResult.search}</p>
+                        </div>
+                      )}
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      CAC RC Number
-                    </label>
-                    <input
-                      type="text"
-                      name="rcNumber"
-                      value={rcNumber}
-                      placeholder="Enter RC Number"
-                      onChange={e => setRcNumber(e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm bg-white/50 backdrop-blur-sm"
-                    />
-                    {cacValidationError && (
-                      <p className="mt-1 text-sm text-red-600">{cacValidationError}</p>
-                    )}
-                    {cacValidationResult && (
-                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-sm text-green-800 font-medium">✓ CAC Validated</p>
-                        <p className="text-xs text-green-700">{cacValidationResult.company_name}</p>
-                        <p className="text-xs text-green-700">{cacValidationResult.address}</p>
-                      </div>
-                    )}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        CAC RC Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="rcNumber"
+                        value={rcNumber}
+                        placeholder="Enter RC Number"
+                        onChange={e => setRcNumber(e.target.value)}
+                        required
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm bg-white/50 backdrop-blur-sm"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">Format: RC followed by numbers (e.g., RC123456)</p>
+                      {cacValidationError && (
+                        <p className="mt-1 text-sm text-red-600">{cacValidationError}</p>
+                      )}
+                      {cacValidationResult && (
+                        <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-sm text-green-800 font-medium">✓ CAC Validated</p>
+                          <p className="text-xs text-green-700">{cacValidationResult.company_name}</p>
+                          <p className="text-xs text-green-700">{cacValidationResult.address}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1785,7 +1800,7 @@ const UploadKYCDocumentsPage = () => {
                     <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">2</span>
                     Required Business Documents
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6" style={slideUpAnimation}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8" style={slideUpAnimation}>
                     <FileUploadBox
                       docType="certificateOfRegistration"
                       label="Certificate of Registration (Original to be sighted)"
@@ -1799,15 +1814,7 @@ const UploadKYCDocumentsPage = () => {
                       accountTypeKey="partnership"
                       fileRef={fileInputRefs.validIdOfPartners}
                     />
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
-                  <h4 className="text-sm font-medium text-slate-700 mb-4 flex items-center">
-                    <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">2</span>
-                    Additional Documents
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6" style={slideUpAnimation}>
+                
                     <FileUploadBox
                       docType="formOfApplication"
                       label="Form of Application for Registration (Certified by CAC)"
@@ -1942,128 +1949,140 @@ const UploadKYCDocumentsPage = () => {
 
           {/* Enterprise Account Requirements */}
           {accountType === 'enterprise' && (
-            <div className="mb-6">
+            <div className="mb-10" style={fadeInAnimation}>
               <div className="flex items-center mb-4">
                 <Building2 className="h-5 w-5 text-slate-500 mr-2" />
                 <h3 className="text-lg font-medium">Enterprise Account Requirements</h3>
               </div>
 
-              {/* SCUML Section - First Priority */}
-              <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
-                <h4 className="text-sm font-medium text-slate-700 mb-4 flex items-center">
-                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">1</span>
-                  Securities License Information
-                </h4>
-                <div className="space-y-4">
-                  <SCUMLToggle
-                    checked={hasSCUMLLicense}
-                    onChange={handleSCUMLToggle}
-                  />
-                  {hasSCUMLLicense && (
-                    <SCUMLInput
-                      value={scumlNumber}
-                      onChange={handleSCUMLChange}
-                      error={scumlError}
-                    />
-                  )}
-                </div>
-              </div>
+
 
               {/* TIN and CAC Validation Section */}
               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
                 <h4 className="text-sm font-medium text-slate-700 mb-4 flex items-center">
-                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">2</span>
-                  Business Registration Validation
+                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">1</span>
+                  Business Registration Validation <span className="ml-2 text-xs bg-red-100 text-red-800 py-0.5 px-2 rounded-full">Required</span>
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Tax Identification Number (TIN)
-                    </label>
-                    <input
-                      type="text"
-                      name="taxNumber"
-                      value={taxInfo.taxNumber}
-                      placeholder="Enter TIN"
-                      onChange={handleTaxInfoChange}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm bg-white/50 backdrop-blur-sm"
+                <div className="grid grid-cols-1 gap-6">
+
+
+
+                  <div className="space-y-4">
+                    <SCUMLToggle
+                      checked={hasSCUMLLicense}
+                      onChange={handleSCUMLToggle}
                     />
-                    {tinValidationError && (
-                      <p className="mt-1 text-sm text-red-600">{tinValidationError}</p>
-                    )}
-                    {tinValidationResult && (
-                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-sm text-green-800 font-medium">✓ TIN Validated</p>
-                        <p className="text-xs text-green-700">{tinValidationResult.taxpayer_name || tinValidationResult.search}</p>
-                      </div>
+                    {hasSCUMLLicense && (
+                      <SCUMLInput
+                        value={scumlNumber}
+                        onChange={handleSCUMLChange}
+                        error={scumlError}
+                      />
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      CAC RC Number
-                    </label>
-                    <input
-                      type="text"
-                      name="rcNumber"
-                      value={rcNumber}
-                      placeholder="Enter RC Number"
-                      onChange={e => setRcNumber(e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm bg-white/50 backdrop-blur-sm"
-                    />
-                    {cacValidationError && (
-                      <p className="mt-1 text-sm text-red-600">{cacValidationError}</p>
-                    )}
-                    {cacValidationResult && (
-                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-sm text-green-800 font-medium">✓ CAC Validated</p>
-                        <p className="text-xs text-green-700">{cacValidationResult.company_name}</p>
-                        <p className="text-xs text-green-700">{cacValidationResult.address}</p>
-                      </div>
-                    )}
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Tax Identification Number (TIN) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="taxNumber"
+                        value={taxInfo.taxNumber}
+                        placeholder="Enter TIN"
+                        onChange={handleTaxInfoChange}
+                        required
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm bg-white/50 backdrop-blur-sm"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">Format: 10-12 digits (e.g., 1234567890)</p>
+                      {tinValidationError && (
+                        <p className="mt-1 text-sm text-red-600">{tinValidationError}</p>
+                      )}
+                      {tinValidationResult && (
+                        <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-sm text-green-800 font-medium">✓ TIN Validated</p>
+                          <p className="text-xs text-green-700">{tinValidationResult.taxpayer_name || tinValidationResult.search}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        CAC RC Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="rcNumber"
+                        value={rcNumber}
+                        placeholder="Enter RC Number"
+                        onChange={e => setRcNumber(e.target.value)}
+                        required
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm bg-white/50 backdrop-blur-sm"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">Format: RC followed by numbers (e.g., RC123456)</p>
+                      {cacValidationError && (
+                        <p className="mt-1 text-sm text-red-600">{cacValidationError}</p>
+                      )}
+                      {cacValidationResult && (
+                        <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-sm text-green-800 font-medium">✓ CAC Validated</p>
+                          <p className="text-xs text-green-700">{cacValidationResult.company_name}</p>
+                          <p className="text-xs text-green-700">{cacValidationResult.address}</p>
+                        </div>
+                      )}
+                    </div>
+
                   </div>
+
                 </div>
               </div>
 
               {/* Show other fields only if no SCUML license */}
               <>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
-                  <FileUploadBox
-                    docType="certificateOfRegistration"
-                    label="Certificate of Registration (Original to be sighted)"
-                    accountTypeKey="enterprise"
-                    fileRef={fileInputRefs.certificateOfRegistration}
-                  />
-
-                  <FileUploadBox
-                    docType="formOfApplication"
-                    label="Form of Application for Registration (Certified by CAC)"
-                    accountTypeKey="enterprise"
-                    fileRef={fileInputRefs.formOfApplication}
-                  />
-
-                  <FileUploadBox
-                    docType="passportPhotos"
-                    label="Two recent passport-size photographs of each owner"
-                    accountTypeKey="enterprise"
-                    fileRef={fileInputRefs.passportPhotos}
-                  />
-
-                  <FileUploadBox
-                    docType="utilityReceipt"
-                    label="Photocopy of Public Utility Receipt (Original sighted)"
-                    accountTypeKey="enterprise"
-                    fileRef={fileInputRefs.utilityReceipt}
-                  />
-
-                  <div className="md:col-span-2">
+                <div className='bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8'>
+                  <h4 className="text-sm font-medium text-slate-700 mb-4 flex items-center">
+                    <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">2</span>
+                    Required Business Documents
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
                     <FileUploadBox
-                      docType="businessOwnerID"
-                      label="Valid Identification of Business Owner"
+                      docType="certificateOfRegistration"
+                      label="Certificate of Registration (Original to be sighted)"
                       accountTypeKey="enterprise"
-                      fileRef={fileInputRefs.businessOwnerID}
+                      fileRef={fileInputRefs.certificateOfRegistration}
                     />
+
+                    <FileUploadBox
+                      docType="formOfApplication"
+                      label="Form of Application for Registration (Certified by CAC)"
+                      accountTypeKey="enterprise"
+                      fileRef={fileInputRefs.formOfApplication}
+                    />
+
+                    <FileUploadBox
+                      docType="passportPhotos"
+                      label="Two recent passport-size photographs of each owner"
+                      accountTypeKey="enterprise"
+                      fileRef={fileInputRefs.passportPhotos}
+                    />
+
+                    <FileUploadBox
+                      docType="utilityReceipt"
+                      label="Photocopy of Public Utility Receipt (Original sighted)"
+                      accountTypeKey="enterprise"
+                      fileRef={fileInputRefs.utilityReceipt}
+                    />
+
+                    <div className="md:col-span-2">
+                      <FileUploadBox
+                        docType="businessOwnerID"
+                        label="Valid Identification of Business Owner"
+                        accountTypeKey="enterprise"
+                        fileRef={fileInputRefs.businessOwnerID}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -2077,8 +2096,9 @@ const UploadKYCDocumentsPage = () => {
                   />
                 </div>
 
-                <div className="mt-8">
-                  <h4 className="text-lg font-medium mb-4">Corporate References (Two independent references required)</h4>
+                <div className="mt-8 bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
+
+                  <h4 className="text-md font-medium mb-4">Corporate References (Two independent references required)</h4>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
                     <div className="p-6 border border-slate-200 rounded-lg">
@@ -2142,149 +2162,154 @@ const UploadKYCDocumentsPage = () => {
 
           {/* Limited Liability Account Requirements */}
           {accountType === 'llc' && (
-            <div className="mb-6">
+            <div className="mb-10" style={fadeInAnimation}>
               <div className="flex items-center mb-4">
                 <FileText className="h-5 w-5 text-slate-500 mr-2" />
                 <h3 className="text-lg font-medium">Limited Liability Account Requirements</h3>
               </div>
 
-              {/* SCUML Section - First Priority */}
-              <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
-                <h4 className="text-sm font-medium text-slate-700 mb-4 flex items-center">
-                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">1</span>
-                  Securities License Information
-                </h4>
-                <div className="space-y-4">
-                  <SCUMLToggle
-                    checked={hasSCUMLLicense}
-                    onChange={handleSCUMLToggle}
-                  />
-                  {hasSCUMLLicense && (
-                    <SCUMLInput
-                      value={scumlNumber}
-                      onChange={handleSCUMLChange}
-                      error={scumlError}
-                    />
-                  )}
-                </div>
-              </div>
+
 
               {/* TIN and CAC Validation Section */}
               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
                 <h4 className="text-sm font-medium text-slate-700 mb-4 flex items-center">
-                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">2</span>
-                  Business Registration Validation
+                  <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">1</span>
+                  Business Registration Validation <span className="ml-2 text-xs bg-red-100 text-red-800 py-0.5 px-2 rounded-full">Required</span>
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Tax Identification Number (TIN)
-                    </label>
-                    <input
-                      type="text"
-                      name="taxNumber"
-                      value={taxInfo.taxNumber}
-                      placeholder="Enter TIN"
-                      onChange={handleTaxInfoChange}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm bg-white/50 backdrop-blur-sm"
+                <div className="grid grid-cols-1  gap-6">
+                  <div className="space-y-4">
+                    <SCUMLToggle
+                      checked={hasSCUMLLicense}
+                      onChange={handleSCUMLToggle}
                     />
-                    {tinValidationError && (
-                      <p className="mt-1 text-sm text-red-600">{tinValidationError}</p>
+                    {hasSCUMLLicense && (
+                      <SCUMLInput
+                        value={scumlNumber}
+                        onChange={handleSCUMLChange}
+                        error={scumlError}
+                      />
                     )}
-                    {tinValidationResult && (
-                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-sm text-green-800 font-medium">✓ TIN Validated</p>
-                        <p className="text-xs text-green-700">{tinValidationResult.taxpayer_name || tinValidationResult.search}</p>
-                      </div>
-                    )}
+                  </div>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Tax Identification Number (TIN) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="taxNumber"
+                        value={taxInfo.taxNumber}
+                        placeholder="Enter TIN"
+                        onChange={handleTaxInfoChange}
+                        required
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm bg-white/50 backdrop-blur-sm"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">Format: 10-12 digits (e.g., 1234567890)</p>
+                      {tinValidationError && (
+                        <p className="mt-1 text-sm text-red-600">{tinValidationError}</p>
+                      )}
+                      {tinValidationResult && (
+                        <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-sm text-green-800 font-medium">✓ TIN Validated</p>
+                          <p className="text-xs text-green-700">{tinValidationResult.taxpayer_name || tinValidationResult.search}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        CAC RC Number
+                      </label>
+                      <input
+                        type="text"
+                        name="rcNumber"
+                        value={rcNumber}
+                        placeholder="Enter RC Number"
+                        onChange={e => setRcNumber(e.target.value)}
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm bg-white/50 backdrop-blur-sm"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">Format: RC followed by numbers (e.g., RC123456)</p>
+                      {cacValidationError && (
+                        <p className="mt-1 text-sm text-red-600">{cacValidationError}</p>
+                      )}
+                      {cacValidationResult && (
+                        <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-sm text-green-800 font-medium">✓ CAC Validated</p>
+                          <p className="text-xs text-green-700">{cacValidationResult.company_name}</p>
+                          <p className="text-xs text-green-700">{cacValidationResult.address}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      CAC RC Number
-                    </label>
-                    <input
-                      type="text"
-                      name="rcNumber"
-                      value={rcNumber}
-                      placeholder="Enter RC Number"
-                      onChange={e => setRcNumber(e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm bg-white/50 backdrop-blur-sm"
-                    />
-                    {cacValidationError && (
-                      <p className="mt-1 text-sm text-red-600">{cacValidationError}</p>
-                    )}
-                    {cacValidationResult && (
-                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-sm text-green-800 font-medium">✓ CAC Validated</p>
-                        <p className="text-xs text-green-700">{cacValidationResult.company_name}</p>
-                        <p className="text-xs text-green-700">{cacValidationResult.address}</p>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
 
-              {/* Show other fields only if no SCUML license */}
               <>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
-                  <FileUploadBox
-                    docType="certificateOfIncorporation"
-                    label="Certificate of Incorporation / Registration Number"
-                    accountTypeKey="llc"
-                    fileRef={fileInputRefs.certificateOfIncorporation}
-                  />
-
-                  <FileUploadBox
-                    docType="memorandumArticles"
-                    label="Memorandum and Articles of Association"
-                    accountTypeKey="llc"
-                    fileRef={fileInputRefs.memorandumArticles}
-                  />
-
-                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6  pb-6">
-                    <TextInput
-                      label="Tax Identification Number (TIN)"
-                      name="taxNumber"
-                      value={taxInfo.taxNumber}
-                      placeholder="Enter TIN"
-                      onChange={handleTaxInfoChange}
-                    />
-
-                    <TextInput
-                      label="SCUML Registration Number (if applicable)"
-                      name="scumlNumber"
-                      value={taxInfo.scumlNumber}
-                      placeholder="Enter SCUML Number"
-                      onChange={handleTaxInfoChange}
-                    />
-                  </div>
-
-                  <FileUploadBox
-                    docType="boardResolution"
-                    label="Board Resolution authorizing the account opening"
-                    accountTypeKey="llc"
-                    fileRef={fileInputRefs.boardResolution}
-                  />
-
-                  <FileUploadBox
-                    docType="directorsID"
-                    label="Valid Identification of Directors and Signatories"
-                    accountTypeKey="llc"
-                    fileRef={fileInputRefs.directorsID}
-                  />
-
-
-                  <div className="md:col-span-2">
+                <div className='bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8'>
+                  <h4 className="text-sm font-medium text-slate-700 mb-4 flex items-center">
+                    <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold mr-2">2</span>
+                    Required Business Documents
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
                     <FileUploadBox
-                      docType="proofOfAddress"
-                      label="Proof of Address (Utility Bill, Bank Statement, etc.)"
+                      docType="certificateOfIncorporation"
+                      label="Certificate of Incorporation / Registration Number"
                       accountTypeKey="llc"
-                      fileRef={fileInputRefs.proofOfAddress}
+                      fileRef={fileInputRefs.certificateOfIncorporation}
                     />
-                  </div>
 
+                    <FileUploadBox
+                      docType="memorandumArticles"
+                      label="Memorandum and Articles of Association"
+                      accountTypeKey="llc"
+                      fileRef={fileInputRefs.memorandumArticles}
+                    />
+
+                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6  pb-6">
+                      <TextInput
+                        label="Tax Identification Number (TIN)"
+                        name="taxNumber"
+                        value={taxInfo.taxNumber}
+                        placeholder="Enter TIN"
+                        onChange={handleTaxInfoChange}
+                      />
+
+                      <TextInput
+                        label="SCUML Registration Number (if applicable)"
+                        name="scumlNumber"
+                        value={taxInfo.scumlNumber}
+                        placeholder="Enter SCUML Number"
+                        onChange={handleTaxInfoChange}
+                      />
+                    </div>
+
+                    <FileUploadBox
+                      docType="boardResolution"
+                      label="Board Resolution authorizing the account opening"
+                      accountTypeKey="llc"
+                      fileRef={fileInputRefs.boardResolution}
+                    />
+
+                    <FileUploadBox
+                      docType="directorsID"
+                      label="Valid Identification of Directors and Signatories"
+                      accountTypeKey="llc"
+                      fileRef={fileInputRefs.directorsID}
+                    />
+
+
+                    <div className="md:col-span-2">
+                      <FileUploadBox
+                        docType="proofOfAddress"
+                        label="Proof of Address (Utility Bill, Bank Statement, etc.)"
+                        accountTypeKey="llc"
+                        fileRef={fileInputRefs.proofOfAddress}
+                      />
+                    </div>
+
+                  </div>
                 </div>
                 <div className="mt-6">
                   <TextInput
@@ -2296,8 +2321,9 @@ const UploadKYCDocumentsPage = () => {
                   />
                 </div>
 
-                <div className="mt-8">
-                  <h4 className="text-lg font-medium mb-4">Corporate References (Two independent references required)</h4>
+                <div className="mt-8 bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
+
+                  <h4 className="text-md font-medium mb-4">Corporate References (Two independent references required)</h4>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
                     <div className="p-6 border border-slate-200 rounded-lg">
@@ -2376,23 +2402,23 @@ const UploadKYCDocumentsPage = () => {
               disabled={
                 isSubmitting ||
                 (
-                  (['partnership', 'enterprise', 'llc'].includes(accountType) && hasSCUMLLicense)
-                    ? (!scumlNumber || !!scumlError)
+                  ['partnership', 'enterprise', 'llc'].includes(accountType)
+                    ? (!taxInfo.taxNumber || !rcNumber || (hasSCUMLLicense && (!scumlNumber || !!scumlError)))
                     : !getRequiredDocumentsForAccountType(accountType).every(docType => getFileByType(accountType, docType) !== null)
                 )
               }
               className={`w-full max-w-md py-4 px-6 ${isSubmitting ||
-                  (
-                    (['partnership', 'enterprise', 'llc'].includes(accountType) && hasSCUMLLicense)
-                      ? (!scumlNumber || !!scumlError)
-                      : !getRequiredDocumentsForAccountType(accountType).every(docType => getFileByType(accountType, docType) !== null)
-                  )
-                  ? 'bg-blue-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
+                (
+                  ['partnership', 'enterprise', 'llc'].includes(accountType)
+                    ? (!taxInfo.taxNumber || !rcNumber || (hasSCUMLLicense && (!scumlNumber || !!scumlError)))
+                    : !getRequiredDocumentsForAccountType(accountType).every(docType => getFileByType(accountType, docType) !== null)
+                )
+                ? 'bg-blue-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
                 } text-white font-semibold rounded-xl transition-all duration-300 flex items-center justify-center shadow-lg shadow-blue-500/20 ${!isSubmitting &&
                   (
-                    (['partnership', 'enterprise', 'llc'].includes(accountType) && hasSCUMLLicense)
-                      ? (scumlNumber && !scumlError)
+                    ['partnership', 'enterprise', 'llc'].includes(accountType)
+                      ? (taxInfo.taxNumber && rcNumber && (!hasSCUMLLicense || (scumlNumber && !scumlError)))
                       : getRequiredDocumentsForAccountType(accountType).every(docType => getFileByType(accountType, docType) !== null)
                   )
                   ? 'hover:shadow-blue-500/30 hover:scale-[1.01] hover:-translate-y-0.5'
