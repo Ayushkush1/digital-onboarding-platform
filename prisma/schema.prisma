@@ -438,6 +438,8 @@ enum DojahVerificationType {
   FRAUD_EMAIL_CHECK
   FRAUD_PHONE_CHECK
   FRAUD_CREDIT_CHECK
+  TIN_VALIDATION
+  CAC_VALIDATION
 }
 
 enum DojahStatus {

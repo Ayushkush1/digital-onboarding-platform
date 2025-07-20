@@ -17,6 +17,7 @@ const getCurrentUserId = (): string | null => {
   }
 };
 
+
 export async function POST(request: NextRequest) {
   try {
     const userId = getCurrentUserId();
@@ -122,15 +123,73 @@ export async function GET(req: NextRequest) {
     const tin = searchParams.get('tin');
     const rcNumber = searchParams.get('rc_number');
     const companyType = searchParams.get('company_type');
+    
+    console.log('Received validation request with params:', {
+      tin: tin || 'not provided',
+      rcNumber: rcNumber || 'not provided',
+      companyType: companyType || 'not provided'
+    });
 
+    let tinResult = null;
+    let cacResult = null;
+    let errors: any = {};
+
+    // If both TIN and CAC params are present, validate both
+    if (tin && rcNumber && companyType) {
+      // Validate TIN
+      console.log('Starting TIN validation for:', tin);
+      try {
+        tinResult = await dojahService.lookupFirsTin(tin);
+        console.log('TIN validation result:', tinResult ? 'Success' : 'No result found');
+        if (!tinResult) {
+          errors.tin = 'No result found for provided TIN';
+        }
+      } catch (error: any) {
+        console.error('TIN validation error:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+        errors.tin = error.message || 'TIN validation failed';
+      }
+      // Validate CAC
+      console.log('Starting CAC validation for:', rcNumber, companyType);
+      try {
+        cacResult = await dojahService.lookupCacBasic(rcNumber, companyType);
+        console.log('CAC validation result:', cacResult ? 'Success' : 'No result found');
+        if (!cacResult) {
+          errors.cac = 'No result found for provided RC number and company type';
+        }
+      } catch (error: any) {
+        console.error('CAC validation error:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+        errors.cac = error.message || 'CAC validation failed';
+      }
+      if (Object.keys(errors).length > 0) {
+        return NextResponse.json({ error: errors, tin: tinResult, cac: cacResult }, { status: 207 });
+      }
+      return NextResponse.json({ tin: tinResult, cac: cacResult });
+    }
+
+    // If only TIN is present
     if (tin) {
+      console.log('Starting TIN validation for:', tin);
       try {
         const result = await dojahService.lookupFirsTin(tin);
+        console.log('TIN validation result:', result ? 'Success' : 'No result found');
         if (!result) {
           return NextResponse.json({ error: 'No result found for provided TIN' }, { status: 404 });
         }
         return NextResponse.json({ entity: result });
       } catch (error: any) {
+        console.error('TIN validation error:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
         if (error.name === 'AbortError') {
           return NextResponse.json({ error: 'TIN validation timed out, please try again later.' }, { status: 504 });
         }
@@ -138,14 +197,22 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // If only CAC is present
     if (rcNumber && companyType) {
+      console.log('Starting CAC validation for:', rcNumber, companyType);
       try {
         const result = await dojahService.lookupCacBasic(rcNumber, companyType);
+        console.log('CAC validation result:', result ? 'Success' : 'No result found');
         if (!result) {
           return NextResponse.json({ error: 'No result found for provided RC number and company type' }, { status: 404 });
         }
         return NextResponse.json({ entity: result });
       } catch (error: any) {
+        console.error('CAC validation error:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
         if (error.name === 'AbortError') {
           return NextResponse.json({ error: 'CAC validation timed out, please try again later.' }, { status: 504 });
         }

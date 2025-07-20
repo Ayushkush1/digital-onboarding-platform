@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { BusinessValidationService, ValidationRequest } from '@/lib/business-validation-service';
+import { CacCompanyType } from '@/lib/dojah-service';
 
 // Helper to get the current user ID from cookies
 const getCurrentUserId = (): string | null => {
@@ -20,7 +22,10 @@ export async function POST(request: NextRequest) {
     const userId = getCurrentUserId();
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return new NextResponse(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401 }
+      );
     }
 
     const body = await request.json();
@@ -37,8 +42,82 @@ export async function POST(request: NextRequest) {
       rcNumber,
       companyType,
       tinValidationResult,
-      cacValidationResult
+      cacValidationResult,
+      // New fields for business validation
+      tin,
+      performBusinessValidation = false,
+      additionalData
     } = body;
+
+    let businessValidationResult = null;
+    let verificationStatus = 'PENDING';
+
+    // Perform business validation if requested and business data is provided
+    if (performBusinessValidation && (tin || (rcNumber && companyType))) {
+      try {
+        console.log('Starting business validation for user:', userId);
+        
+        // Create validation request object
+        const validationRequest: ValidationRequest = {
+          userId,
+          tin,
+          rcNumber,
+          companyType: companyType as CacCompanyType,
+          businessName,
+          businessAddress,
+          taxNumber,
+          additionalData: {
+            ...additionalData,
+            accountType,
+            scumlNumber,
+            bvn,
+            references,
+            extractedData
+          }
+        };
+
+        businessValidationResult = await BusinessValidationService.validateBusinessWithStorage(validationRequest);
+
+        // Determine verification status based on validation results
+        if (businessValidationResult.overallStatus === 'APPROVED') {
+          verificationStatus = 'APPROVED';
+        } else if (businessValidationResult.overallStatus === 'REQUIRES_MANUAL_REVIEW') {
+          verificationStatus = 'PENDING'; // Will be reviewed by admin
+        } else {
+          verificationStatus = 'PENDING';
+        }
+
+        console.log('Business validation completed:', {
+          userId,
+          overallStatus: businessValidationResult.overallStatus,
+          validationScore: businessValidationResult.validationScore,
+          requiresManualReview: businessValidationResult.requiresManualReview
+        });
+
+      } catch (error) {
+        console.error('Business validation error:', error);
+        // Even if validation fails, we still save the data for manual review
+        businessValidationResult = {
+          tinValidation: {
+            isValid: false,
+            status: 'ERROR',
+            error: 'Validation service error',
+            timestamp: new Date()
+          },
+          cacValidation: {
+            isValid: false,
+            status: 'ERROR',
+            error: 'Validation service error',
+            timestamp: new Date()
+          },
+          overallStatus: 'REQUIRES_MANUAL_REVIEW',
+          validationScore: 0,
+          requiresManualReview: true,
+          manualReviewReason: 'Business validation service error occurred'
+        };
+        verificationStatus = 'PENDING';
+      }
+    }
 
     // Save or update KYC form data
     const kycFormData = await prisma.kYCFormData.upsert({
@@ -64,8 +143,8 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
         rcNumber,
         companyType,
-        tinValidationResult: tinValidationResult ? tinValidationResult as any : null,
-        cacValidationResult: cacValidationResult ? cacValidationResult as any : null
+        tinValidationResult: businessValidationResult ? businessValidationResult.tinValidation as any : (tinValidationResult ? tinValidationResult as any : null),
+        cacValidationResult: businessValidationResult ? businessValidationResult.cacValidation as any : (cacValidationResult ? cacValidationResult as any : null)
       },
       create: {
         userId,
@@ -86,8 +165,8 @@ export async function POST(request: NextRequest) {
         submittedAt: isSubmitted ? new Date() : undefined,
         rcNumber,
         companyType,
-        tinValidationResult: tinValidationResult ? tinValidationResult as any : null,
-        cacValidationResult: cacValidationResult ? cacValidationResult as any : null
+        tinValidationResult: businessValidationResult ? businessValidationResult.tinValidation as any : (tinValidationResult ? tinValidationResult as any : null),
+        cacValidationResult: businessValidationResult ? businessValidationResult.cacValidation as any : (cacValidationResult ? cacValidationResult as any : null)
       }
     });
 
@@ -119,33 +198,62 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // If SCUML number is provided and form is submitted, update verification status to verified
-    if (scumlNumber && isSubmitted && ['PARTNERSHIP', 'ENTERPRISE', 'LLC'].includes(accountType)) {
+    // Update verification status based on validation results
+    if (isSubmitted) {
+      let overallStatus = 'PENDING';
+      let kycStatus = 'PENDING';
+      let progress = 0;
+
+      // Determine status based on validation results
+      if (businessValidationResult) {
+        if (businessValidationResult.overallStatus === 'APPROVED') {
+          overallStatus = 'APPROVED';
+          kycStatus = 'APPROVED';
+          progress = 100;
+        } else if (businessValidationResult.overallStatus === 'REQUIRES_MANUAL_REVIEW') {
+          overallStatus = 'PENDING';
+          kycStatus = 'PENDING';
+          progress = 50; // Partial progress for manual review
+        }
+      } else if (scumlNumber && ['PARTNERSHIP', 'ENTERPRISE', 'LLC'].includes(accountType)) {
+        // Fallback to SCUML verification if no business validation
+        overallStatus = 'APPROVED';
+        kycStatus = 'APPROVED';
+        progress = 100;
+      }
+
       await prisma.verificationStatus.upsert({
         where: { userId },
         update: {
-          overallStatus: 'APPROVED',
-          kycStatus: 'APPROVED',
-          progress: 100,
+          overallStatus,
+          kycStatus,
+          progress,
           updatedAt: new Date()
         },
         create: {
           userId,
-          overallStatus: 'APPROVED',
-          kycStatus: 'APPROVED',
+          overallStatus,
+          kycStatus,
           selfieStatus: 'PENDING',
-          progress: 100
+          progress
         }
       });
 
-      // Also update user account status
-      await prisma.user.update({
-        where: { id: userId },
-        data: { accountStatus: 'ACTIVE' }
-      });
+      // Update user account status
+      if (overallStatus === 'APPROVED') {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { accountStatus: 'ACTIVE' }
+        });
+      }
     }
 
-    return NextResponse.json({ success: true, data: kycFormData });
+    return NextResponse.json({ 
+      success: true, 
+      data: kycFormData,
+      businessValidation: businessValidationResult,
+      verificationStatus
+    });
   } catch (error) {
     console.error('Error saving KYC form data:', error);
     return NextResponse.json(

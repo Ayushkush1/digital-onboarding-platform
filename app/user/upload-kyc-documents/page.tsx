@@ -173,14 +173,9 @@ const docTypeToEnumMapping = (docType: string): DocumentType => {
 };
 
 const UploadKYCDocumentsPage = () => {
+  // 1. Core hooks
   const router = useRouter();
   const { user, loading } = useAuth();
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [accountType, setAccountType] = useState('individual');
-  const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
-  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
-  const [formDataLoaded, setFormDataLoaded] = useState(false);
-
   const {
     documents,
     kycStatus,
@@ -188,13 +183,105 @@ const UploadKYCDocumentsPage = () => {
     hasSubmittedDocuments
   } = useVerificationStore();
 
-  // Check if documents were already submitted
-  const alreadySubmitted = hasSubmittedDocuments();
+  // 2. All state hooks (move all useState here)
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [accountType, setAccountType] = useState('individual');
+  const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [formDataLoaded, setFormDataLoaded] = useState(false);
+  const [showAccountOptions, setShowAccountOptions] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+  const [uploadStatus, setUploadStatus] = useState<{ [key: string]: 'Choose File' | 'File Selected' | 'Uploading' | 'Uploaded' | 'Verifying' | 'Verified' | 'File Mismatched' }>({});
+  const [documentErrors, setDocumentErrors] = useState<{ [key: string]: string }>({});
+  const [individualDocuments, setIndividualDocuments] = useState({
+    idCardFront: null as File | null,
+    idCardBack: null as File | null,
+    passport: null as File | null,
+    utilityBill: null as File | null
+  });
+  const [partnershipDocuments, setPartnershipDocuments] = useState({
+    certificateOfRegistration: null as File | null,
+    formOfApplication: null as File | null,
+    validIdOfPartners: null as File | null,
+    proofOfAddress: null as File | null
+  });
+  const [enterpriseDocuments, setEnterpriseDocuments] = useState({
+    certificateOfRegistration: null as File | null,
+    formOfApplication: null as File | null,
+    passportPhotos: null as File | null,
+    utilityReceipt: null as File | null,
+    businessOwnerID: null as File | null
+  });
+  const [llcDocuments, setLlcDocuments] = useState({
+    certificateOfIncorporation: null as File | null,
+    memorandumArticles: null as File | null,
+    boardResolution: null as File | null,
+    directorsID: null as File | null,
+    proofOfAddress: null as File | null
+  });
+  const [references, setReferences] = useState({
+    ref1Name: '',
+    ref1Address: '',
+    ref1Phone: '',
+    ref2Name: '',
+    ref2Address: '',
+    ref2Phone: ''
+  });
+  const [businessAddress, setBusinessAddress] = useState('');
+  const [taxInfo, setTaxInfo] = useState({
+    taxNumber: '',
+    scumlNumber: ''
+  });
+  const [hasSCUMLLicense, setHasSCUMLLicense] = useState(false);
+  const [scumlNumber, setSCUMLNumber] = useState('');
+  const [scumlError, setSCUMLError] = useState('');
+  const [fileNames, setFileNames] = useState({
+    idCardFront: '',
+    idCardBack: '',
+    passport: '',
+    utilityBill: '',
+    certificateOfRegistration: '',
+    formOfApplication: '',
+    validIdOfPartners: '',
+    proofOfAddress: '',
+    passportPhotos: '',
+    utilityReceipt: '',
+    businessOwnerID: '',
+    certificateOfIncorporation: '',
+    memorandumArticles: '',
+    boardResolution: '',
+    directorsID: ''
+  });
+  const fileInputRefs = {
+    idCardFront: useRef<HTMLInputElement>(null),
+    idCardBack: useRef<HTMLInputElement>(null),
+    passport: useRef<HTMLInputElement>(null),
+    utilityBill: useRef<HTMLInputElement>(null),
+    certificateOfRegistration: useRef<HTMLInputElement>(null),
+    formOfApplication: useRef<HTMLInputElement>(null),
+    validIdOfPartners: useRef<HTMLInputElement>(null),
+    proofOfAddress: useRef<HTMLInputElement>(null),
+    passportPhotos: useRef<HTMLInputElement>(null),
+    utilityReceipt: useRef<HTMLInputElement>(null),
+    businessOwnerID: useRef<HTMLInputElement>(null),
+    certificateOfIncorporation: useRef<HTMLInputElement>(null),
+    memorandumArticles: useRef<HTMLInputElement>(null),
+    boardResolution: useRef<HTMLInputElement>(null),
+    directorsID: useRef<HTMLInputElement>(null)
+  };
+  const [extractedDocumentData, setExtractedDocumentData] = useState<{ [key: string]: any }>({});
+  const [businessName, setBusinessName] = useState('');
+  const [rcNumber, setRcNumber] = useState('');
+  const [tinValidationResult, setTinValidationResult] = useState<any>(null);
+  const [cacValidationResult, setCacValidationResult] = useState<any>(null);
+  const [cacValidationError, setCacValidationError] = useState('');
+  const [tinValidationError, setTinValidationError] = useState('');
+  const [isValidatingTin, setIsValidatingTin] = useState(false);
+  const [isValidatingCac, setIsValidatingCac] = useState(false);
 
-  // Check if user has already completed document upload
-  const isDocumentUploadComplete = kycStatus === VerificationStatusEnum.APPROVED ||
-    (documents && documents.length > 0 && documents.every(doc => doc.verified));
-
+  // 3. Effect hooks (move all useEffect here)
   useEffect(() => {
     if (!loading && !user) {
       router.push('/access');
@@ -204,6 +291,11 @@ const UploadKYCDocumentsPage = () => {
       loadFormData();
     }
   }, [user, loading, router, hasCheckedStatus, fetchVerificationStatus]);
+
+  // 4. Derived state
+  const alreadySubmitted = hasSubmittedDocuments();
+  const isDocumentUploadComplete = kycStatus === VerificationStatusEnum.APPROVED ||
+    (documents && documents.length > 0 && documents.every(doc => doc.verified));
 
   // Load existing form data from database
   const loadFormData = async () => {
@@ -311,130 +403,6 @@ const UploadKYCDocumentsPage = () => {
   // We don't need the second effect that redirects automatically
   // This was causing the issue by preventing multiple document uploads
 
-  const [showAccountOptions, setShowAccountOptions] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-
-  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
-  const [uploadStatus, setUploadStatus] = useState<{ [key: string]: 'Choose File' | 'File Selected' | 'Uploading' | 'Uploaded' | 'Verifying' | 'Verified' | 'File Mismatched' }>({});
-  const [documentErrors, setDocumentErrors] = useState<{ [key: string]: string }>({});
-
-  // Individual account documents
-  const [individualDocuments, setIndividualDocuments] = useState({
-    idCardFront: null as File | null,
-    idCardBack: null as File | null,
-    passport: null as File | null,
-    utilityBill: null as File | null
-  });
-
-  // Partnership account documents
-  const [partnershipDocuments, setPartnershipDocuments] = useState({
-    certificateOfRegistration: null as File | null,
-    formOfApplication: null as File | null,
-    validIdOfPartners: null as File | null,
-    proofOfAddress: null as File | null
-  });
-
-  // Enterprise account documents
-  const [enterpriseDocuments, setEnterpriseDocuments] = useState({
-    certificateOfRegistration: null as File | null,
-    formOfApplication: null as File | null,
-    passportPhotos: null as File | null,
-    utilityReceipt: null as File | null,
-    businessOwnerID: null as File | null
-  });
-
-  // LLC account documents
-  const [llcDocuments, setLlcDocuments] = useState({
-    certificateOfIncorporation: null as File | null,
-    memorandumArticles: null as File | null,
-    boardResolution: null as File | null,
-    directorsID: null as File | null,
-    proofOfAddress: null as File | null
-  });
-
-  // References for all business types
-  const [references, setReferences] = useState({
-    ref1Name: '',
-    ref1Address: '',
-    ref1Phone: '',
-    ref2Name: '',
-    ref2Address: '',
-    ref2Phone: ''
-  });
-
-  // Business address for enterprise and LLC
-  const [businessAddress, setBusinessAddress] = useState('');
-
-  // Tax and registration numbers for LLC
-  const [taxInfo, setTaxInfo] = useState({
-    taxNumber: '',
-    scumlNumber: ''
-  });
-
-  // SCUML toggle and validation states
-  const [hasSCUMLLicense, setHasSCUMLLicense] = useState(false);
-  const [scumlNumber, setSCUMLNumber] = useState('');
-  const [scumlError, setSCUMLError] = useState('');
-
-  // File names for display
-  const [fileNames, setFileNames] = useState({
-    // Individual
-    idCardFront: '',
-    idCardBack: '',
-    passport: '',
-    utilityBill: '',
-
-    // Partnership
-    certificateOfRegistration: '',
-    formOfApplication: '',
-    validIdOfPartners: '',
-    proofOfAddress: '',
-
-    // Enterprise
-    passportPhotos: '',
-    utilityReceipt: '',
-    businessOwnerID: '',
-
-    // LLC
-    certificateOfIncorporation: '',
-    memorandumArticles: '',
-    boardResolution: '',
-    directorsID: ''
-  });
-
-  // File input refs
-  const fileInputRefs = {
-    // Individual
-    idCardFront: useRef<HTMLInputElement>(null),
-    idCardBack: useRef<HTMLInputElement>(null),
-    passport: useRef<HTMLInputElement>(null),
-    utilityBill: useRef<HTMLInputElement>(null),
-
-    // Partnership
-    certificateOfRegistration: useRef<HTMLInputElement>(null),
-    formOfApplication: useRef<HTMLInputElement>(null),
-    validIdOfPartners: useRef<HTMLInputElement>(null),
-    proofOfAddress: useRef<HTMLInputElement>(null),
-
-    // Enterprise
-    passportPhotos: useRef<HTMLInputElement>(null),
-    utilityReceipt: useRef<HTMLInputElement>(null),
-    businessOwnerID: useRef<HTMLInputElement>(null),
-
-    // LLC
-    certificateOfIncorporation: useRef<HTMLInputElement>(null),
-    memorandumArticles: useRef<HTMLInputElement>(null),
-    boardResolution: useRef<HTMLInputElement>(null),
-    directorsID: useRef<HTMLInputElement>(null)
-  };
-
-  const accountTypes = [
-    { id: 'individual', name: 'Individual Account', icon: User },
-    { id: 'partnership', name: 'Partnership Account', icon: Building },
-    { id: 'enterprise', name: 'Enterprise Account', icon: Building2 },
-    { id: 'llc', name: 'Limited Liability Account', icon: FileText }
-  ];
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, docType: string, accountTypeKey: 'individual' | 'partnership' | 'enterprise' | 'llc') => {
     if (e.target.files && e.target.files[0]) {
       let file = e.target.files[0];
@@ -731,10 +699,6 @@ const UploadKYCDocumentsPage = () => {
     }
   };
 
-  // Add a new state to store extracted document data
-  const [extractedDocumentData, setExtractedDocumentData] = useState<{ [key: string]: any }>({});
-  const [businessName, setBusinessName] = useState('');
-
   // Function to trigger combined ID card verification when both front and back are uploaded
   const triggerCombinedIdCardVerification = async (): Promise<void> => {
     try {
@@ -863,14 +827,6 @@ const UploadKYCDocumentsPage = () => {
         return 'BUSINESS_NAME';
     }
   };
-
-  const [rcNumber, setRcNumber] = useState('');
-  const [tinValidationResult, setTinValidationResult] = useState<any>(null);
-  const [cacValidationResult, setCacValidationResult] = useState<any>(null);
-  const [cacValidationError, setCacValidationError] = useState('');
-  const [tinValidationError, setTinValidationError] = useState('');
-  const [isValidatingTin, setIsValidatingTin] = useState(false);
-  const [isValidatingCac, setIsValidatingCac] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1568,6 +1524,16 @@ const UploadKYCDocumentsPage = () => {
     );
   }
 
+  // Define a type for accountTypes
+  type AccountTypeOption = { id: string; name: string; icon: React.ElementType };
+  // Declare accountTypes array after hooks
+  const accountTypes: AccountTypeOption[] = [
+    { id: 'individual', name: 'Individual Account', icon: User },
+    { id: 'partnership', name: 'Partnership Account', icon: Building },
+    { id: 'enterprise', name: 'Enterprise Account', icon: Building2 },
+    { id: 'llc', name: 'Limited Liability Account', icon: FileText }
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 rounded">
       <div className='rounded-xl shadow-lg p-6 md:p-8 bg-white border border-slate-100'>
@@ -1612,7 +1578,7 @@ const UploadKYCDocumentsPage = () => {
             Select Account Type
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {accountTypes.map(type => {
+            {accountTypes.map((type) => {
               const Icon = type.icon;
               const isSelected = type.id === accountType;
 

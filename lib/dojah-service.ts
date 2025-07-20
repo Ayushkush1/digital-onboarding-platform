@@ -24,8 +24,10 @@ interface DojahResponse {
 }
 
 // Constants for API request handling
-const MAX_RETRY_ATTEMPTS = 2;
-const API_TIMEOUT = 60000; // 60 seconds timeout
+const MAX_RETRY_ATTEMPTS = 4;
+const API_TIMEOUT = 180000; // 3 minutes timeout
+const MIN_BACKOFF_DELAY = 2000; // 2 seconds minimum delay
+const MAX_BACKOFF_DELAY = 15000; // 15 seconds maximum delay
 
 interface DocumentAnalysisResult {
   extractedText?: string;
@@ -88,6 +90,55 @@ interface SelfieVerificationResult {
   };
 }
 
+// Move CacCompanyType and related interfaces to top-level scope
+export enum CacCompanyType {
+  BUSINESS_NAME = 'BUSINESS_NAME',
+  COMPANY = 'COMPANY',
+  INCORPORATED_TRUSTEES = 'INCORPORATED_TRUSTEES',
+  LIMITED_PARTNERSHIP = 'LIMITED_PARTNERSHIP',
+  LIMITED_LIABILITY_PARTNERSHIP = 'LIMITED_LIABILITY_PARTNERSHIP'
+}
+
+export interface CacBasicResponse {
+  company_name: string;
+  type_of_company: CacCompanyType;
+  address: string;
+  status: string;
+  date_of_registration: string;
+  rc_number: string;
+  business_number: string;
+  email: string;
+  state: string;
+  city: string;
+  lga: string;
+  business: string;
+}
+
+export interface CacAdvancedResponse extends Omit<CacBasicResponse, 'business_number' | 'business'> {
+  nature_of_business: string | null;
+  share_capital: string | null;
+  share_details: Record<string, any>;
+  affiliates: Array<{
+    first_name: string;
+    last_name: string;
+    email: string;
+    address: string;
+    state: string;
+    city: string;
+    lga: string;
+    occupation: string | null;
+    phone_number: string;
+    gender: 'MALE' | 'FEMALE';
+    date_of_birth: string;
+    nationality: string;
+    affiliate_type: string;
+    affiliate_category_type: string;
+    country: string;
+    id_number: string | null;
+    id_type: string | null;
+  }>;
+}
+
 class DojahService {
   private config: DojahConfig;
   constructor() {
@@ -122,26 +173,52 @@ class DojahService {
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+          console.log(`Request timed out after ${API_TIMEOUT/1000} seconds`);
+        }, API_TIMEOUT);
 
         const response = await fetch(url, {
           ...options,
-          signal: controller.signal
+          signal: controller.signal,
+          // Adding keep-alive to maintain connection
+          headers: {
+            ...options.headers,
+            'Connection': 'keep-alive',
+          }
         });
 
         clearTimeout(timeoutId);
+        
+        // Check if response is ok before returning
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         return response;
       } catch (error) {
         lastError = error;
-        console.log(`Dojah API call attempt ${attempt + 1}/${retries + 1} failed:`, error instanceof Error ? error.message : 'Unknown error');
+        const isTimeout = error instanceof Error && 
+          (error.name === 'AbortError' || error.message.includes('timeout'));
+        
+        console.log(`Dojah API call attempt ${attempt + 1}/${retries + 1} failed:`, 
+          error instanceof Error ? error.message : 'Unknown error',
+          isTimeout ? '(timeout)' : '');
 
-        // If we've used all retries, or if it's not a timeout error, throw
-        if (attempt >= retries || !(error instanceof Error && error.name === 'AbortError')) {
+        // If we've used all retries, throw
+        if (attempt >= retries) {
           break;
         }
 
-        // Wait before retrying (exponential backoff: 1s, 2s, 4s, etc.)
-        const backoffDelay = Math.min(1000 * Math.pow(2, attempt), 5000);
+        // Calculate backoff delay with jitter
+        const baseDelay = Math.min(
+          MIN_BACKOFF_DELAY * Math.pow(2, attempt),
+          MAX_BACKOFF_DELAY
+        );
+        // Add random jitter (±20% of base delay)
+        const jitter = baseDelay * 0.2 * (Math.random() * 2 - 1);
+        const backoffDelay = Math.floor(baseDelay + jitter);
+        
         console.log(`Waiting ${backoffDelay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, backoffDelay));
       }
@@ -1086,24 +1163,109 @@ class DojahService {
     return response;
   }
   // FIRS TIN Lookup
-  async lookupFirsTin(tin: string): Promise<any> {
+  async lookupFirsTin(tin: string): Promise<{
+    search: string;
+    taxpayer_name: string;
+    cac_reg_number: string;
+    firstin: string;
+    jittin: string;
+    tax_office: string;
+    phone_number: string;
+    email: string;
+  } | null> {
     const endpoint = '/api/v1/kyc/tin';
-    // Explicitly use SECRET_KEY auth for TIN validation
-    const response = await this.makeRequest(endpoint, { tin }, DojahAuthMode.SECRET_KEY);
-    if (!response.entity) {
-      return null;
+    console.log(`Starting FIRS TIN lookup for: ${tin}`);
+    
+    try {
+      // Explicitly use SECRET_KEY auth for TIN validation
+      const response = await this.makeRequest(endpoint, { tin }, DojahAuthMode.SECRET_KEY);
+      
+      if (!response.entity) {
+        console.log(`No entity found in response for TIN: ${tin}`);
+        return null;
+      }
+
+      // Validate the response structure
+      const entity = response.entity;
+      if (!entity.taxpayer_name) {
+        console.log(`Invalid TIN response format for: ${tin}. Missing taxpayer_name`);
+        return null;
+      }
+
+      console.log(`Successfully validated TIN: ${tin} for taxpayer: ${entity.taxpayer_name}`);
+      return {
+        search: entity.search || tin,
+        taxpayer_name: entity.taxpayer_name,
+        cac_reg_number: entity.cac_reg_number || 'N/A',
+        firstin: entity.firstin || tin,
+        jittin: entity.jittin || 'N/A',
+        tax_office: entity.tax_office || 'N/A',
+        phone_number: entity.phone_number || 'N/A',
+        email: entity.email || 'N/A'
+      };
+    } catch (error) {
+      console.error(`FIRS TIN lookup failed for: ${tin}`, error);
+      throw error;
     }
-    return response.entity;
   }
-  // CAC Basic Lookup
-  async lookupCacBasic(rcNumber: string, companyType: string): Promise<any> {
-    const endpoint = '/api/v1/kyc/cac/basic';
-    // Explicitly use SECRET_KEY auth for CAC basic lookup
-    const response = await this.makeRequest(endpoint, { rc_number: rcNumber, company_type: companyType }, DojahAuthMode.SECRET_KEY);
-    if (!response.entity) {
-      return null;
+
+  // Helper to validate company type
+  private validateCacCompanyType(companyType: any): companyType is CacCompanyType {
+    const valid = Object.values(CacCompanyType).includes(companyType);
+    if (!valid) {
+      console.error(`Invalid company type: ${companyType}. Must be one of: ${Object.values(CacCompanyType).join(', ')}`);
     }
-    return response.entity;
+    return valid;
+  }
+
+  // Enhanced CAC Basic Lookup
+  async lookupCacBasic(rcNumber: string, companyType: CacCompanyType): Promise<CacBasicResponse | { error: string }> {
+    const endpoint = '/api/v1/kyc/cac/basic';
+    console.log(`[lookupCacBasic] RC Number: ${rcNumber}, Company Type: ${companyType}`);
+    if (!this.validateCacCompanyType(companyType)) {
+      return { error: `Invalid company type: ${companyType}` };
+    }
+    try {
+      const response = await this.makeRequest(
+        endpoint,
+        { rc_number: rcNumber, company_type: companyType },
+        DojahAuthMode.SECRET_KEY
+      );
+      if (!response.entity) {
+        console.log(`[lookupCacBasic] No entity found for RC Number: ${rcNumber}`);
+        return { error: 'No entity found in response' };
+      }
+      console.log(`[lookupCacBasic] Success for company: ${response.entity.company_name}`);
+      return response.entity;
+    } catch (error: any) {
+      console.error(`[lookupCacBasic] Error for RC Number: ${rcNumber}`, error);
+      return { error: error.message || 'CAC Basic lookup failed' };
+    }
+  }
+
+  // New: Enhanced CAC Advanced Lookup
+  async lookupCacAdvanced(rcNumber: string, companyType: CacCompanyType): Promise<CacAdvancedResponse | { error: string }> {
+    const endpoint = '/api/v1/kyc/cac/advance';
+    console.log(`[lookupCacAdvanced] RC Number: ${rcNumber}, Company Type: ${companyType}`);
+    if (!this.validateCacCompanyType(companyType)) {
+      return { error: `Invalid company type: ${companyType}` };
+    }
+    try {
+      const response = await this.makeRequest(
+        endpoint,
+        { rc_number: rcNumber, company_type: companyType },
+        DojahAuthMode.SECRET_KEY
+      );
+      if (!response.entity) {
+        console.log(`[lookupCacAdvanced] No entity found for RC Number: ${rcNumber}`);
+        return { error: 'No entity found in response' };
+      }
+      console.log(`[lookupCacAdvanced] Success for company: ${response.entity.company_name}`);
+      return response.entity;
+    } catch (error: any) {
+      console.error(`[lookupCacAdvanced] Error for RC Number: ${rcNumber}`, error);
+      return { error: error.message || 'CAC Advanced lookup failed' };
+    }
   }
   // Comprehensive fraud check - only IP check and phone check
   async performComprehensiveCheck(userData: {
