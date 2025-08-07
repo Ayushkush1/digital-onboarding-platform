@@ -502,8 +502,8 @@ export default function UserDetailsPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                               {Object.entries(userDetails.cacCompanyData).map(([key, value]) => (
                                 <div key={key} className="flex">
-                                  <span className="text-xs font-semibold text-gray-700 mr-2">{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</span>
-                                  <span className="text-xs text-gray-800">{String(value)}</span>
+                                  <span className="text-xs font-semibold text-gray-700 mr-2 break-words whitespace-pre-line">{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</span>
+                                  <span className="text-xs text-gray-800 break-words whitespace-pre-line">{String(value)}</span>
                                 </div>
                               ))}
                             </div>
