@@ -18,6 +18,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          src="https://widgets.leadconnectorhq.com/loader.js"
+          data-resources-url="https://widgets.leadconnectorhq.com/chat-widget/loader.js"
+          data-widget-id="67ff121f119caa7e6578236b"   >
+        </script>
+        <link rel="icon" href="/favicon.ico" />
+      </head>
       <body className={inter.className} >
         <AuthProvider>
           <main className="min-h-screen">{children}</main>
