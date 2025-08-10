@@ -817,24 +817,24 @@ class DojahService {
 
         console.log(`Vishal : ${accountType} - ${documentType}`);
         // Add a if condition to check if AccountType is Individual if its individual then we can check for documentType match else we can skip this check
-        if (accountType === 'individual') { 
-          if (analysisResult.documentType?.documentName && documentType && analysisResult.isValid) {
-            isDocumentTypeMatch = this.validateDocumentTypeMatch(documentType, analysisResult.documentType.documentName);
-            console.log(`Document type match for ${documentType} against ${analysisResult.documentType.documentName}: ${isDocumentTypeMatch}`);
-            if (!isDocumentTypeMatch) {
-              documentTypeMismatchNote = `Document type mismatch: Expected ${documentType}, but extracted ${analysisResult.documentType.documentName}`;
-              documentStatus = VerificationStatusEnum.REQUIRES_REUPLOAD;
-            }
-          } else if (!analysisResult.isValid && !isUtilityBill) {
-            documentTypeMismatchNote = 'Document is invalid';
-            console.log(`Document is invalid`);
-            documentStatus = VerificationStatusEnum.REQUIRES_REUPLOAD;
-          }
-        } else {
-          // Skip document type match check for non-individual accounts
-          documentStatus = VerificationStatusEnum.IN_PROGRESS;
-        }
-
+        // if (accountType === 'individual') { 
+        //   if (analysisResult.documentType?.documentName && documentType && analysisResult.isValid) {
+        //     isDocumentTypeMatch = this.validateDocumentTypeMatch(documentType, analysisResult.documentType.documentName);
+        //     console.log(`Document type match for ${documentType} against ${analysisResult.documentType.documentName}: ${isDocumentTypeMatch}`);
+        //     if (!isDocumentTypeMatch) {
+        //       documentTypeMismatchNote = `Document type mismatch: Expected ${documentType}, but extracted ${analysisResult.documentType.documentName}`;
+        //       documentStatus = VerificationStatusEnum.REQUIRES_REUPLOAD;
+        //     }
+        //   } else if (!analysisResult.isValid && !isUtilityBill) {
+        //     documentTypeMismatchNote = 'Document is invalid';
+        //     console.log(`Document is invalid`);
+        //     documentStatus = VerificationStatusEnum.REQUIRES_REUPLOAD;
+        //   }
+        // } else {
+        //   // Skip document type match check for non-individual accounts
+        //   documentStatus = VerificationStatusEnum.IN_PROGRESS;
+        // }
+        documentStatus = VerificationStatusEnum.IN_PROGRESS;
         await prisma.kYCDocument.update({
           where: { id: documentId },
           data: {
@@ -920,30 +920,30 @@ class DojahService {
         livenessResult = await this.checkLiveness(selfieBase64);
 
         // Fail verification if no face is detected or multiple faces are detected
-        if (!livenessResult.faceDetected || livenessResult.multiFaceDetected || !livenessResult.isLive) {
-          let errorMessage = 'Verification failed';
+        // if (!livenessResult.faceDetected || livenessResult.multiFaceDetected || !livenessResult.isLive) {
+        //   let errorMessage = 'Verification failed';
 
-          if (!livenessResult.faceDetected) {
-            errorMessage = 'No face detected in the image';
-          } else if (livenessResult.multiFaceDetected) {
-            errorMessage = 'Multiple faces detected in the image';
-          } else if (!livenessResult.isLive) {
-            errorMessage = `Liveness check failed. Score: ${livenessResult.livenessProbability.toFixed(2)}% (threshold: 50%)`;
-          }
+        //   if (!livenessResult.faceDetected) {
+        //     errorMessage = 'No face detected in the image';
+        //   } else if (livenessResult.multiFaceDetected) {
+        //     errorMessage = 'Multiple faces detected in the image';
+        //   } else if (!livenessResult.isLive) {
+        //     errorMessage = `Liveness check failed. Score: ${livenessResult.livenessProbability.toFixed(2)}% (threshold: 50%)`;
+        //   }
 
-          await prisma.dojahVerification.update({
-            where: { id: verification.id },
-            data: {
-              status: DojahStatus.FAILED,
-              responseData: {
-                livenessCheck: livenessResult,
-                error: errorMessage
-              } as any
-            }
-          });
+        //   await prisma.dojahVerification.update({
+        //     where: { id: verification.id },
+        //     data: {
+        //       status: DojahStatus.FAILED,
+        //       responseData: {
+        //         livenessCheck: livenessResult,
+        //         error: errorMessage
+        //       } as any
+        //     }
+        //   });
 
-          return verification.id;
-        }
+        //   return verification.id;
+        // }
       }
 
       // Step 2: Perform actual verification with Dojah API
