@@ -15,14 +15,16 @@ const CtaSection: React.FC = () => {
           
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
             <a 
-              href="#contact" 
+              href="https://calendly.com/f_o" 
+              target='_blank'
               className="px-6 py-3 bg-white text-blue-600 rounded-md font-medium hover:bg-blue-50 transition-colors shadow-sm flex items-center justify-center"
             >
               Schedule a Demo
               <ArrowRight className="ml-2 h-5 w-5" />
             </a>
             <a 
-              href="#contact" 
+              href="https://calendly.com/f_o" 
+              target='_blank'
               className="px-6 py-3 border border-white text-white rounded-md font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
             >
               Get in Touch
